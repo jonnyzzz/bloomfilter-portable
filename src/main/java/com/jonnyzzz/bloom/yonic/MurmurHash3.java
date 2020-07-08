@@ -58,7 +58,7 @@ public final class MurmurHash3 {
     /** Returns the MurmurHash3_x64_128 hash, placing the result in "out". */
     @NotNull
     @SuppressWarnings("fallthrough")
-    public static LongPair murmurhash3_x64_128(byte[] key, int offset, int len, int seed) {
+    public static LongPair murmurhash3_x64_128(byte[] key, int len, int seed) {
         // The original algorithm does have a 32 bit unsigned seed.
         // We have to mask to match the behavior of the unsigned types and prevent sign extension.
         long h1 = seed & 0x00000000FFFFFFFFL;
@@ -67,8 +67,8 @@ public final class MurmurHash3 {
         final long c1 = 0x87c37b91114253d5L;
         final long c2 = 0x4cf5ad432745937fL;
 
-        int roundedEnd = offset + (len & 0xFFFFFFF0);  // round down to 16 byte block
-        for (int i=offset; i<roundedEnd; i+=16) {
+        int roundedEnd = len & 0xFFFFFFF0;  // round down to 16 byte block
+        for (int i = 0; i<roundedEnd; i+=16) {
             long k1 = getLongLittleEndian(key, i);
             long k2 = getLongLittleEndian(key, i+8);
             k1 *= c1; k1  = Long.rotateLeft(k1,31); k1 *= c2; h1 ^= k1;

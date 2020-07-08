@@ -4,6 +4,7 @@ package com.jonnyzzz.bloom.yonic;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
 
@@ -31,7 +32,7 @@ public class TestMurmurHash3 {
             MurmurHash3.LongPair result;
             for (int len = 0; len < bytes.length; len++) {
                 seed *= 0x9e3779b1;
-                result = MurmurHash3.murmurhash3_x64_128(arr, offset, len, seed);
+                result = MurmurHash3.murmurhash3_x64_128(Arrays.copyOfRange(arr, offset, offset + len), len, seed);
                 assertEquals(answers128[len * 2], result.val1);
                 assertEquals(answers128[len * 2 + 1], result.val2);
             }

@@ -30,22 +30,32 @@ object MurmurHash3 {
         return k
     }
 
-    fun murmurhash3_x64_128(buf: ByteArray, seed: Int): Pair<Long, Long> {
-        require(buf.size % 16 == 0) { "the buf must be properly padded to 16 bytes / 128 bits" }
+    tailrec fun murmurhash3_x64_128(s: String, seed: Int = 0) : Pair<Long, Long> {
+        val rem = s.length % 8 //we been 128 padding aka 4 chars / 16 bytes
+        //align the string with \0 chars
+        if (rem != 0) return murmurhash3_x64_128(s + "\u0000".repeat(rem), seed)
+        return murmurhash3_x64_128(seed, s.length / 4, {
+            val offset = it * 4
+            s[offset + 3].toLong().and(0xffffL).shl(48) or
+            s[offset + 2].toLong().and(0xffffL).shl(32) or
+            s[offset + 1].toLong().and(0xffffL).shl(16) or
+            s[offset + 0].toLong().and(0xffffL)
+        }, ::Pair)
+    }
+
+    fun murmurhash3_x64_128(buf: ByteArray, seed: Int = 0): Pair<Long, Long> {
+        require(buf.size % 16 == 0) { "the buf must be properly padded to 16 bytes / 128 bits, but was ${buf.size}, rem ${buf.size % 16}" }
         return murmurhash3_x64_128(seed, buf.size / 8, {
             val offset = it * 8
-
-            (
-                    buf[offset + 7].toLong() shl 56 // no mask needed
-                            or (buf[offset + 6].toLong() and 0xffL shl 48)
-                            or (buf[offset + 5].toLong() and 0xffL shl 40)
-                            or (buf[offset + 4].toLong() and 0xffL shl 32)
-                            or (buf[offset + 3].toLong() and 0xffL shl 24)
-                            or (buf[offset + 2].toLong() and 0xffL shl 16)
-                            or (buf[offset + 1].toLong() and 0xffL shl 8)
-                            or (buf[offset].toLong() and 0xffL)
-                    )
-        }, { h1, h2 -> h1 to h2 })
+            buf[offset + 7].toLong().and(0xffL).shl(56) or
+            buf[offset + 6].toLong().and(0xffL).shl(48) or
+            buf[offset + 5].toLong().and(0xffL).shl(40) or
+            buf[offset + 4].toLong().and(0xffL).shl(32) or
+            buf[offset + 3].toLong().and(0xffL).shl(24) or
+            buf[offset + 2].toLong().and(0xffL).shl(16) or
+            buf[offset + 1].toLong().and(0xffL).shl(8) or
+            buf[offset + 0].toLong().and(0xffL)
+        }, ::Pair)
     }
 
     /** Returns the MurmurHash3_x64_128 hash*/

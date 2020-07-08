@@ -27,7 +27,11 @@ object MurmurHash3 {
     }
 
     fun murmurhash3_x64_128(buf: ByteArray, seed: Int): Pair<Long, Long> {
-        return murmurhash3_x64_128(seed, buf.size, { offset -> (
+        require(buf.size % 16 == 0) { "the buf must be properly padded to 16 bytes / 128 bits" }
+        return murmurhash3_x64_128(seed, buf.size / 8, {
+            val offset = it * 8
+
+            (
                 buf[offset + 7].toLong() shl 56 // no mask needed
                         or (buf[offset + 6].toLong() and 0xffL shl 48)
                         or (buf[offset + 5].toLong() and 0xffL shl 40)
@@ -41,12 +45,12 @@ object MurmurHash3 {
 
     /** Returns the MurmurHash3_x64_128 hash*/
     inline fun <R> murmurhash3_x64_128(seed: Int,
-                                   sizeInBytes: Int,
-                                   getLongLittleEndian: (byteOffset: Int) -> Long,
-                                   handleResult: (Long, Long) -> R
+                                       sizeInLongs: Int,
+                                       getLongLittleEndian: (longOffset: Int) -> Long,
+                                       handleResult: (Long, Long) -> R
     ): R {
-        @Suppress("UnnecessaryVariable")
-        val len = sizeInBytes
+        require(sizeInLongs % 2 == 0) { "the input must be properly padded to 2 longs / 128 bites" }
+
         // The original algorithm does have a 32 bit unsigned seed.
         // We have to mask to match the behavior of the unsigned types and prevent sign extension.
         var h1 = seed.toLong() and 0x00000000FFFFFFFFL
@@ -54,12 +58,12 @@ object MurmurHash3 {
         val c1 = -0x783c846eeebdac2bL
         val c2 = 0x4cf5ad432745937fL
 
-        if (len % 16 != 0) throw RuntimeException("The array must have size mod 16 == 0")
+        if (sizeInLongs % 2 != 0) throw RuntimeException("The array must have size mod 16 == 0")
 
         var i = 0
-        while (i < len) {
-            var k1 = getLongLittleEndian(i)
-            var k2 = getLongLittleEndian(i + 8)
+        while (i < sizeInLongs) {
+            var k1 = getLongLittleEndian(i++)
+            var k2 = getLongLittleEndian(i++)
             k1 *= c1
             k1 = java.lang.Long.rotateLeft(k1, 31)
             k1 *= c2
@@ -74,10 +78,10 @@ object MurmurHash3 {
             h2 = java.lang.Long.rotateLeft(h2, 31)
             h2 += h1
             h2 = h2 * 5 + 0x38495ab5
-            i += 16
         }
-        h1 = h1 xor len.toLong()
-        h2 = h2 xor len.toLong()
+
+        h1 = h1 xor (sizeInLongs * 8).toLong()
+        h2 = h2 xor (sizeInLongs * 8).toLong()
         h1 += h2
         h2 += h1
         h1 = fmix64(h1)

@@ -58,7 +58,8 @@ public final class MurmurHash3 {
     /** Returns the MurmurHash3_x64_128 hash, placing the result in "out". */
     @NotNull
     @SuppressWarnings("fallthrough")
-    public static LongPair murmurhash3_x64_128(byte[] key, int len, int seed) {
+    public static LongPair murmurhash3_x64_128(byte[] key, int seed) {
+        final int len = key.length;
         // The original algorithm does have a 32 bit unsigned seed.
         // We have to mask to match the behavior of the unsigned types and prevent sign extension.
         long h1 = seed & 0x00000000FFFFFFFFL;

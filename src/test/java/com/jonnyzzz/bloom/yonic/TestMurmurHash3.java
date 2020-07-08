@@ -29,10 +29,10 @@ public class TestMurmurHash3 {
             byte[] arr = new byte[bytes.length + offset];
             System.arraycopy(bytes, 0, arr, offset, bytes.length);
             int seed = 1;
-            MurmurHash3.LongPair result;
             for (int len = 0; len < bytes.length; len++) {
                 seed *= 0x9e3779b1;
-                result = MurmurHash3.murmurhash3_x64_128(Arrays.copyOfRange(arr, offset, offset + len), len, seed);
+                byte[] input = Arrays.copyOfRange(arr, offset, offset + len);
+                MurmurHash3.LongPair result = MurmurHash3.murmurhash3_x64_128(input, seed);
                 assertEquals(answers128[len * 2], result.val1);
                 assertEquals(answers128[len * 2 + 1], result.val2);
             }

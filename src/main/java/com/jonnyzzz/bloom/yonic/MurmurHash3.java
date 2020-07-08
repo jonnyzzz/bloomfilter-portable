@@ -69,6 +69,11 @@ public final class MurmurHash3 {
         final long c2 = 0x4cf5ad432745937fL;
 
         int roundedEnd = len & 0xFFFFFFF0;  // round down to 16 byte block
+
+        if (roundedEnd != len) {
+            throw new RuntimeException("The array must have size mod 16 == 0");
+        }
+
         for (int i = 0; i<roundedEnd; i+=16) {
             long k1 = getLongLittleEndian(key, i);
             long k2 = getLongLittleEndian(key, i+8);
@@ -76,42 +81,6 @@ public final class MurmurHash3 {
             h1 = Long.rotateLeft(h1,27); h1 += h2; h1 = h1*5+0x52dce729;
             k2 *= c2; k2  = Long.rotateLeft(k2,33); k2 *= c1; h2 ^= k2;
             h2 = Long.rotateLeft(h2,31); h2 += h1; h2 = h2*5+0x38495ab5;
-        }
-
-        long k1 = 0;
-        long k2 = 0;
-
-        int rem = len & 15;
-
-        if (rem >= 15) k2 = (key[roundedEnd + 14] & 0xffL) << 48;
-        if (rem >= 14) k2 |= (key[roundedEnd + 13] & 0xffL) << 40;
-        if (rem >= 13) k2 |= (key[roundedEnd + 12] & 0xffL) << 32;
-        if (rem >= 12) k2 |= (key[roundedEnd + 11] & 0xffL) << 24;
-        if (rem >= 11) k2 |= (key[roundedEnd + 10] & 0xffL) << 16;
-        if (rem >= 10) k2 |= (key[roundedEnd + 9] & 0xffL) << 8;
-
-        if (rem >= 9) {
-            k2 |= (key[roundedEnd+ 8] & 0xffL);
-            k2 *= c2;
-            k2  = Long.rotateLeft(k2, 33);
-            k2 *= c1;
-            h2 ^= k2;
-        }
-
-        if (rem >= 8) k1 = ((long) key[roundedEnd + 7]) << 56;
-        if (rem >= 7) k1 |= (key[roundedEnd + 6] & 0xffL) << 48;
-        if (rem >= 6) k1 |= (key[roundedEnd + 5] & 0xffL) << 40;
-        if (rem >= 5) k1 |= (key[roundedEnd + 4] & 0xffL) << 32;
-        if (rem >= 4) k1 |= (key[roundedEnd + 3] & 0xffL) << 24;
-        if (rem >= 3) k1 |= (key[roundedEnd + 2] & 0xffL) << 16;
-        if (rem >= 2) k1 |= (key[roundedEnd + 1] & 0xffL) << 8;
-
-        if (rem >= 1 ) {
-            k1 |= (key[roundedEnd  ] & 0xffL);
-            k1 *= c1;
-            k1  = Long.rotateLeft(k1,31);
-            k1 *= c2;
-            h1 ^= k1;
         }
 
         //----------

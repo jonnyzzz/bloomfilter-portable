@@ -48,11 +48,12 @@ private inline fun <reified T : Any> bloomFilterBuilder_singleMur(source: Collec
                                                                   crossinline murmur: (T, seed: Int, hash: (Long, Long) -> Unit) -> Unit
 ): BloomFilter<T> {
     val state = BitSet(numberOfBits)
-    source.forEach { item ->
-        murmur(item, 0) { h1, h2 ->
-            processBits(h1, h2, numberOfBits, numberOfHashFunctions) { state.set(it) }
-        }
+
+    val updater: (Long, Long) -> Unit = { h1, h2 ->
+        processBits(h1, h2, numberOfBits, numberOfHashFunctions) { state.set(it) }
     }
+
+    source.forEach { murmur(it, 0, updater) }
 
     return object: BloomFilter<T> {
         override fun contains(t: T?): Boolean {
@@ -102,6 +103,5 @@ private inline fun processBits(h1: Long,
                                numberOfHashFunctions: Int,
                                action: (bit: Int) -> Unit) {
     val rest = processBits(h1, numberOfBits, numberOfHashFunctions, action)
-    val final = processBits(h2, numberOfBits, rest, action)
-    require(final == 0)
+    processBits(h2, numberOfBits, rest, action)
 }

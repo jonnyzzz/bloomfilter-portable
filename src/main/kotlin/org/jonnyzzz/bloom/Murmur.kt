@@ -15,7 +15,7 @@ package org.jonnyzzz.bloom
 internal object MurmurHash3 {
     fun murmurhash3_x64_128(s: String, seed: Int = 0) = murmurhash3_x64_128(s, seed, ::Pair)
 
-    inline fun <R> murmurhash3_x64_128(input: String, seed: Int = 0, handleResult: (Long, Long) -> R) : R {
+    fun <R> murmurhash3_x64_128(input: String, seed: Int = 0, handleResult: (Long, Long) -> R) : R {
         //pad the string with \0 chars
         val s = when(val rem = input.length % 8) {
             0 -> input
@@ -48,13 +48,11 @@ internal object MurmurHash3 {
 }
 
 
-@PublishedApi
 @Suppress("NOTHING_TO_INLINE")
-internal inline fun rotateLeft(i: Long, distance: Int): Long = i shl distance or (i ushr -distance)
+private inline fun rotateLeft(i: Long, distance: Int): Long = i shl distance or (i ushr -distance)
 
-@PublishedApi
 @Suppress("NOTHING_TO_INLINE")
-internal inline fun fmix64(k: Long): Long {
+private inline fun fmix64(k: Long): Long {
     @Suppress("NAME_SHADOWING")
     var k = k
     k = k xor (k ushr 33)
@@ -66,11 +64,10 @@ internal inline fun fmix64(k: Long): Long {
 }
 
 /** Returns the MurmurHash3_x64_128 hash*/
-@PublishedApi
-internal inline fun <R> murmurhash3_x64_128(seed: Int,
-                                            sizeInLongs: Int,
-                                            getLongLittleEndian: (longOffset: Int) -> Long,
-                                            handleResult: (Long, Long) -> R
+private inline fun <R> murmurhash3_x64_128(seed: Int,
+                                           sizeInLongs: Int,
+                                           getLongLittleEndian: (longOffset: Int) -> Long,
+                                           handleResult: (Long, Long) -> R
 ): R {
     require(sizeInLongs % 2 == 0) { "the input must be properly padded to 2 longs / 128 bites, but was $sizeInLongs" }
 

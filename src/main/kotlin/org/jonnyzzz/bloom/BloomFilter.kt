@@ -13,12 +13,8 @@ interface BloomFilter<T : Any> {
 
 object BloomFilters {
     fun trainStringFilter(input: Collection<String>,
-                          errorProbability: Double = 0.95) : BloomFilter<String> {
-
-        return object: BloomFilter<String> {
-            override fun contains(t: String?): Boolean = true
-        }
-    }
+                          correctAnswerProbability: Double = 0.95) : BloomFilter<String>
+            = stringBloomFilterBuilder(input.toSet(), correctAnswerProbability)
 
     fun loadStringFilter(byteArray: ByteArray): BloomFilter<String> = TODO()
     fun saveStringFilter(filter: BloomFilter<String>): ByteArray = TODO()

@@ -11,30 +11,30 @@ class StringFiltersTest {
             Assert.assertFalse("should not contain - $it", empty.contains(it))
         }
     }
-}
 
+    @Test
+    fun testSimple() {
+        val expectedP = 0.95
+        val input = setOf("a", "b", "c")
+        val filter = BloomFilters.trainStringFilter(input, expectedP)
 
-object StringPermutations {
-    private val cache = mutableMapOf<Int, List<String>>()
-    private val basicChars = """ !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~"""
-            .map { it.toString() }
-            .toList()
-
-    fun allStringsOfSize(size: Int): List<String> {
-        if (size == 0) return listOf()
-        if (size == 1) return basicChars
-
-        return cache.computeIfAbsent(size) {
-            val base = allStringsOfSize(size - 1)
-            val result = base.toMutableList()
-
-            for (ch in basicChars) {
-                result += base.map { ch + it }
-            }
-
-            result
+        for (s in input) {
+            Assert.assertTrue("must contains - $s", filter.contains(s))
         }
+
+        var count = 0
+        var error = 0
+
+        StringPermutations.allStringsOfSize(3).forEach {
+            if (it !in input) {
+                count++
+                if (filter.contains(it)) error++
+            }
+        }
+
+        val actualP = 1 - error.toDouble() / count
+        println("There are $error errors for $count tries: P(correctAnswer) = $actualP")
+        Assert.assertTrue(actualP >= expectedP)
     }
-
-
 }
+

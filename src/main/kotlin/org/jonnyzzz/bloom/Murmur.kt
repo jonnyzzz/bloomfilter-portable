@@ -12,18 +12,23 @@ package org.jonnyzzz.bloom
  *
  * Note, this is simplified and patched version of the Murmur3_128 algorithm
  */
-object MurmurHash3 {
-    tailrec fun murmurhash3_x64_128(s: String, seed: Int = 0) : Pair<Long, Long> {
-        val rem = s.length % 8 //we been 128 padding aka 4 chars / 16 bytes
-        //align the string with \0 chars
-        if (rem != 0) return murmurhash3_x64_128(s + "\u0000".repeat(rem), seed)
+internal object MurmurHash3 {
+    fun murmurhash3_x64_128(s: String, seed: Int = 0) = murmurhash3_x64_128(s, seed, ::Pair)
+
+    inline fun <R> murmurhash3_x64_128(input: String, seed: Int = 0, handleResult: (Long, Long) -> R) : R {
+        //pad the string with \0 chars
+        val s = when(val rem = input.length % 8) {
+            0 -> input
+            else -> input + "\u0000".repeat(8 - rem)
+        }
+
         return murmurhash3_x64_128(seed, s.length / 4, {
             val offset = it * 4
             s[offset + 3].toLong().and(0xffffL).shl(48) or
-            s[offset + 2].toLong().and(0xffffL).shl(32) or
-            s[offset + 1].toLong().and(0xffffL).shl(16) or
-            s[offset + 0].toLong().and(0xffffL)
-        }, ::Pair)
+                    s[offset + 2].toLong().and(0xffffL).shl(32) or
+                    s[offset + 1].toLong().and(0xffffL).shl(16) or
+                    s[offset + 0].toLong().and(0xffffL)
+        }, handleResult)
     }
 
     fun murmurhash3_x64_128(buf: ByteArray, seed: Int = 0): Pair<Long, Long> {
@@ -43,11 +48,13 @@ object MurmurHash3 {
 }
 
 
+@PublishedApi
 @Suppress("NOTHING_TO_INLINE")
-private inline fun rotateLeft(i: Long, distance: Int): Long = i shl distance or (i ushr -distance)
+internal inline fun rotateLeft(i: Long, distance: Int): Long = i shl distance or (i ushr -distance)
 
+@PublishedApi
 @Suppress("NOTHING_TO_INLINE")
-private inline fun fmix64(k: Long): Long {
+internal inline fun fmix64(k: Long): Long {
     @Suppress("NAME_SHADOWING")
     var k = k
     k = k xor (k ushr 33)
@@ -59,12 +66,13 @@ private inline fun fmix64(k: Long): Long {
 }
 
 /** Returns the MurmurHash3_x64_128 hash*/
-private inline fun <R> murmurhash3_x64_128(seed: Int,
-                                   sizeInLongs: Int,
-                                   getLongLittleEndian: (longOffset: Int) -> Long,
-                                   handleResult: (Long, Long) -> R
+@PublishedApi
+internal inline fun <R> murmurhash3_x64_128(seed: Int,
+                                            sizeInLongs: Int,
+                                            getLongLittleEndian: (longOffset: Int) -> Long,
+                                            handleResult: (Long, Long) -> R
 ): R {
-    require(sizeInLongs % 2 == 0) { "the input must be properly padded to 2 longs / 128 bites" }
+    require(sizeInLongs % 2 == 0) { "the input must be properly padded to 2 longs / 128 bites, but was $sizeInLongs" }
 
     // The original algorithm does have a 32 bit unsigned seed.
     // We have to mask to match the behavior of the unsigned types and prevent sign extension.

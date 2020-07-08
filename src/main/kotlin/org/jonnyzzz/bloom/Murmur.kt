@@ -1,3 +1,5 @@
+@file:Suppress("FunctionName")
+
 package org.jonnyzzz.bloom
 
 /**
@@ -11,7 +13,9 @@ package org.jonnyzzz.bloom
  * Note, this is simplified and patched version of the Murmur3_128 algorithm
  */
 object MurmurHash3 {
-    private fun fmix64(k: Long): Long {
+    @PublishedApi
+    @Suppress("NOTHING_TO_INLINE")
+    internal inline fun fmix64(k: Long): Long {
         @Suppress("NAME_SHADOWING")
         var k = k
         k = k xor (k ushr 33)
@@ -22,24 +26,27 @@ object MurmurHash3 {
         return k
     }
 
-    /** Gets a long from a byte buffer in little endian byte order.  */
-    private fun getLongLittleEndian(buf: ByteArray, offset: Int): Long {
-        return (
+    fun murmurhash3_x64_128(buf: ByteArray, seed: Int): Pair<Long, Long> {
+        return murmurhash3_x64_128(seed, buf.size, { offset -> (
                 buf[offset + 7].toLong() shl 56 // no mask needed
-                or (buf[offset + 6].toLong() and 0xffL shl 48)
-                or (buf[offset + 5].toLong() and 0xffL shl 40)
-                or (buf[offset + 4].toLong() and 0xffL shl 32)
-                or (buf[offset + 3].toLong() and 0xffL shl 24)
-                or (buf[offset + 2].toLong() and 0xffL shl 16)
-                or (buf[offset + 1].toLong() and 0xffL shl 8)
-                or (buf[offset    ].toLong() and 0xffL)
-                ) // no shift needed
+                        or (buf[offset + 6].toLong() and 0xffL shl 48)
+                        or (buf[offset + 5].toLong() and 0xffL shl 40)
+                        or (buf[offset + 4].toLong() and 0xffL shl 32)
+                        or (buf[offset + 3].toLong() and 0xffL shl 24)
+                        or (buf[offset + 2].toLong() and 0xffL shl 16)
+                        or (buf[offset + 1].toLong() and 0xffL shl 8)
+                        or (buf[offset    ].toLong() and 0xffL)
+                ) }, {h1, h2 -> h1 to h2 })
     }
 
-    /** Returns the MurmurHash3_x64_128 hash, placing the result in "out".  */
-    @JvmStatic
-    fun murmurhash3_x64_128(key: ByteArray, seed: Int): LongPair {
-        val len = key.size
+    /** Returns the MurmurHash3_x64_128 hash*/
+    inline fun <R> murmurhash3_x64_128(seed: Int,
+                                   sizeInBytes: Int,
+                                   getLongLittleEndian: (byteOffset: Int) -> Long,
+                                   handleResult: (Long, Long) -> R
+    ): R {
+        @Suppress("UnnecessaryVariable")
+        val len = sizeInBytes
         // The original algorithm does have a 32 bit unsigned seed.
         // We have to mask to match the behavior of the unsigned types and prevent sign extension.
         var h1 = seed.toLong() and 0x00000000FFFFFFFFL
@@ -51,8 +58,8 @@ object MurmurHash3 {
 
         var i = 0
         while (i < len) {
-            var k1 = getLongLittleEndian(key, i)
-            var k2 = getLongLittleEndian(key, i + 8)
+            var k1 = getLongLittleEndian(i)
+            var k2 = getLongLittleEndian(i + 8)
             k1 *= c1
             k1 = java.lang.Long.rotateLeft(k1, 31)
             k1 *= c2
@@ -77,9 +84,7 @@ object MurmurHash3 {
         h2 = fmix64(h2)
         h1 += h2
         h2 += h1
-        return LongPair(h1, h2)
-    }
 
-    /** 128 bits of state  */
-    data class LongPair(val val1: Long, val val2: Long)
+        return handleResult(h1, h2)
+    }
 }

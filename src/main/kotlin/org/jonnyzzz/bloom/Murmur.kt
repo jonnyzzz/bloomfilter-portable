@@ -15,6 +15,10 @@ package org.jonnyzzz.bloom
 object MurmurHash3 {
     @PublishedApi
     @Suppress("NOTHING_TO_INLINE")
+    internal inline fun rotateLeft(i: Long, distance: Int): Long = i shl distance or (i ushr -distance)
+
+    @PublishedApi
+    @Suppress("NOTHING_TO_INLINE")
     internal inline fun fmix64(k: Long): Long {
         @Suppress("NAME_SHADOWING")
         var k = k
@@ -32,15 +36,16 @@ object MurmurHash3 {
             val offset = it * 8
 
             (
-                buf[offset + 7].toLong() shl 56 // no mask needed
-                        or (buf[offset + 6].toLong() and 0xffL shl 48)
-                        or (buf[offset + 5].toLong() and 0xffL shl 40)
-                        or (buf[offset + 4].toLong() and 0xffL shl 32)
-                        or (buf[offset + 3].toLong() and 0xffL shl 24)
-                        or (buf[offset + 2].toLong() and 0xffL shl 16)
-                        or (buf[offset + 1].toLong() and 0xffL shl 8)
-                        or (buf[offset    ].toLong() and 0xffL)
-                ) }, {h1, h2 -> h1 to h2 })
+                    buf[offset + 7].toLong() shl 56 // no mask needed
+                            or (buf[offset + 6].toLong() and 0xffL shl 48)
+                            or (buf[offset + 5].toLong() and 0xffL shl 40)
+                            or (buf[offset + 4].toLong() and 0xffL shl 32)
+                            or (buf[offset + 3].toLong() and 0xffL shl 24)
+                            or (buf[offset + 2].toLong() and 0xffL shl 16)
+                            or (buf[offset + 1].toLong() and 0xffL shl 8)
+                            or (buf[offset].toLong() and 0xffL)
+                    )
+        }, { h1, h2 -> h1 to h2 })
     }
 
     /** Returns the MurmurHash3_x64_128 hash*/
@@ -65,17 +70,17 @@ object MurmurHash3 {
             var k1 = getLongLittleEndian(i++)
             var k2 = getLongLittleEndian(i++)
             k1 *= c1
-            k1 = java.lang.Long.rotateLeft(k1, 31)
+            k1 = rotateLeft(k1, 31)
             k1 *= c2
             h1 = h1 xor k1
-            h1 = java.lang.Long.rotateLeft(h1, 27)
+            h1 = rotateLeft(h1, 27)
             h1 += h2
             h1 = h1 * 5 + 0x52dce729
             k2 *= c2
-            k2 = java.lang.Long.rotateLeft(k2, 33)
+            k2 = rotateLeft(k2, 33)
             k2 *= c1
             h2 = h2 xor k2
-            h2 = java.lang.Long.rotateLeft(h2, 31)
+            h2 = rotateLeft(h2, 31)
             h2 += h1
             h2 = h2 * 5 + 0x38495ab5
         }

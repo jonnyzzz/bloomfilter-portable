@@ -28,7 +28,7 @@ private inline fun <reified T : Any> bloomFilterBuilder(source: Set<T>,
     val numberOfBits = (-size * ln(1.0 - p) / ln2 * ln2).toInt().coerceAtLeast(2)
     val numberOfHashFunctions = ceil(ln2 * size / numberOfBits).toInt().coerceAtLeast(1)
 
-    require(numberOfBits < 24) { "Too many bits: $numberOfBits. Try lowering the correct answer probability parameter, which is $correctAnswerProbability" }
+    require(numberOfBits < 24) { "Too many bits: $numberOfBits for $size elements. Try lowering the correct answer probability parameter, which is $correctAnswerProbability" }
 
     //how many functions fit into 128 bit mur-mur
     val functionsPerMur3 = (Long.SIZE_BITS / numberOfBits) * 2

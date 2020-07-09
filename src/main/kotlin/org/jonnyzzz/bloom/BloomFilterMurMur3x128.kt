@@ -22,29 +22,12 @@ internal object BloomFilterMurMur3x128 {
          * See https://en.wikipedia.org/wiki/Bloom_filter#Probability_of_false_positives
          */
         val size = source.size
-        val p = correctAnswerProbability.coerceIn(0.0001, 0.995)
+        val p = correctAnswerProbability.coerceIn(0.0001, 0.9995)
 
         val ln2 = ln(2.0)
         val numberOfBits = (-size * ln(1.0 - p) / ln2 * ln2).toInt().coerceAtLeast(2)
         val numberOfHashFunctions = ceil(ln2 * size / numberOfBits).toInt().coerceAtLeast(1)
 
-        require(numberOfBits < 24) { "Too many bits: $numberOfBits for $size elements. Try lowering the correct answer probability parameter, which is $correctAnswerProbability" }
-
-        //how many functions fit into 128 bit mur-mur
-        val functionsPerMur3 = (Long.SIZE_BITS / numberOfBits) * 2
-
-        if (numberOfHashFunctions < functionsPerMur3) {
-            return bloomFilterBuilder_singleMur(source, numberOfBits, numberOfHashFunctions, murmur)
-        }
-
-        TODO("Not implemented for the case where more than one mur3 hash is needed")
-    }
-
-    private inline fun <reified T : Any> bloomFilterBuilder_singleMur(source: Set<T>,
-                                                                      numberOfBits: Int,
-                                                                      numberOfHashFunctions: Int,
-                                                                      murmur: MurMur3HashFunction<T>
-    ): BloomFilter<T> {
         val state = FixedBitSet(numberOfBits)
 
         val updater: (Long, Long) -> Unit = { h1, h2 ->
@@ -60,13 +43,6 @@ internal object BloomFilterMurMur3x128 {
             true
         }
 
-        return bloomFilterImpl(source, murmur, updater, checker)
-    }
-
-    private inline fun <reified T : Any> bloomFilterImpl(source: Set<T>,
-                                                         murmur: MurMur3HashFunction<T>,
-                                                         noinline updater: (Long, Long) -> Unit,
-                                                         noinline checker: (Long, Long) -> Boolean): BloomFilter<T> {
         //fill in the data
         source.forEach { murmur.hash(it, 0, updater) }
 

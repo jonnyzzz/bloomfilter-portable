@@ -14,7 +14,7 @@ interface BloomFilter<T : Any> {
 object BloomFilters {
     fun trainStringFilter(input: Collection<String>,
                           correctAnswerProbability: Double = 0.95) : BloomFilter<String>
-            = stringBloomFilterBuilder(input.toSet(), correctAnswerProbability)
+            = BloomFilterMurMur3x128.stringBloomFilterBuilder(input.toSet(), correctAnswerProbability)
 
     fun loadStringFilter(byteArray: ByteArray): BloomFilter<String> = TODO()
     fun saveStringFilter(filter: BloomFilter<String>): ByteArray = TODO()

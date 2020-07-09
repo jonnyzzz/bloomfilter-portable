@@ -51,19 +51,22 @@ private inline fun <reified T : Any> bloomFilterBuilder_singleMur(source: Set<T>
         processBits(h1, h2, numberOfBits, numberOfHashFunctions) { state.set(it) }
     }
 
+    val checker: (Long, Long) -> Boolean = checker@ { h1, h2 ->
+        processBits(h1, h2, numberOfBits, numberOfHashFunctions) {
+            if (!state.get(it)) {
+                return@checker false
+            }
+        }
+        true
+    }
+
+    //fill in the data
     source.forEach { murmur.hash(it, 0, updater) }
 
     return object: BloomFilter<T> {
         override fun contains(t: T?): Boolean {
             if (t == null) return false
-            return murmur.hash(t, 0) { h1, h2 ->
-                processBits(h1, h2, numberOfBits, numberOfHashFunctions) {
-                    if (!state.get(it)) {
-                        return@hash false
-                    }
-                }
-                true
-            }
+            return murmur.hash(t, 0, checker)
         }
     }
 }

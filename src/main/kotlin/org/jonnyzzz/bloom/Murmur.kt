@@ -27,9 +27,9 @@ internal val murmurhash3_x64_128_string = object : MurMur3HashFunction<String> {
         return murmurhash3_x64_128(seed, s.length / 4, {
             val offset = it * 4
             s[offset + 3].toLong().and(0xffffL).shl(48) or
-                    s[offset + 2].toLong().and(0xffffL).shl(32) or
-                    s[offset + 1].toLong().and(0xffffL).shl(16) or
-                    s[offset + 0].toLong().and(0xffffL)
+            s[offset + 2].toLong().and(0xffffL).shl(32) or
+            s[offset + 1].toLong().and(0xffffL).shl(16) or
+            s[offset + 0].toLong().and(0xffffL)
         }, hash)
     }
 }
@@ -40,13 +40,13 @@ internal val murmurhash3_x64_128_bytes = object : MurMur3HashFunction<ByteArray>
         return murmurhash3_x64_128(seed, t.size / 8, {
             val offset = it * 8
             t[offset + 7].toLong().and(0xffL).shl(56) or
-                    t[offset + 6].toLong().and(0xffL).shl(48) or
-                    t[offset + 5].toLong().and(0xffL).shl(40) or
-                    t[offset + 4].toLong().and(0xffL).shl(32) or
-                    t[offset + 3].toLong().and(0xffL).shl(24) or
-                    t[offset + 2].toLong().and(0xffL).shl(16) or
-                    t[offset + 1].toLong().and(0xffL).shl(8) or
-                    t[offset + 0].toLong().and(0xffL)
+            t[offset + 6].toLong().and(0xffL).shl(48) or
+            t[offset + 5].toLong().and(0xffL).shl(40) or
+            t[offset + 4].toLong().and(0xffL).shl(32) or
+            t[offset + 3].toLong().and(0xffL).shl(24) or
+            t[offset + 2].toLong().and(0xffL).shl(16) or
+            t[offset + 1].toLong().and(0xffL).shl(8) or
+            t[offset + 0].toLong().and(0xffL)
         }, hash)
     }
 }

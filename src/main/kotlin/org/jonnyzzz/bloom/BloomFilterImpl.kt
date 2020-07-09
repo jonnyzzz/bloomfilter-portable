@@ -40,6 +40,21 @@ private inline fun <reified T : Any> bloomFilterBuilder(source: Set<T>,
     TODO("Not implemented for the case where more than one mur3 hash is needed")
 }
 
+private inline fun <reified T : Any> bloomFilterImpl(source: Set<T>,
+                                                     murmur: MurMur3HashFunction<T>,
+                                                     noinline updater: (Long, Long) -> Unit,
+                                                     noinline checker: (Long, Long) -> Boolean): BloomFilter<T> {
+    //fill in the data
+    source.forEach { murmur.hash(it, 0, updater) }
+
+    return object : BloomFilter<T> {
+        override fun contains(t: T?): Boolean {
+            if (t == null) return false
+            return murmur.hash(t, 0, checker)
+        }
+    }
+}
+
 private inline fun <reified T : Any> bloomFilterBuilder_singleMur(source: Set<T>,
                                                                   numberOfBits: Int,
                                                                   numberOfHashFunctions: Int,
@@ -60,15 +75,7 @@ private inline fun <reified T : Any> bloomFilterBuilder_singleMur(source: Set<T>
         true
     }
 
-    //fill in the data
-    source.forEach { murmur.hash(it, 0, updater) }
-
-    return object: BloomFilter<T> {
-        override fun contains(t: T?): Boolean {
-            if (t == null) return false
-            return murmur.hash(t, 0, checker)
-        }
-    }
+    return bloomFilterImpl(source, murmur, updater, checker)
 }
 
 /**

@@ -1,6 +1,5 @@
 package org.jonnyzzz.bloom
 
-import org.jonnyzzz.bloom.MurmurHash3.murmurhash3_x64_128
 import org.junit.Assert
 import org.junit.Test
 import java.nio.charset.StandardCharsets
@@ -16,6 +15,9 @@ import java.nio.charset.StandardCharsets
  * Note, this is simplified and patched version of the Murmur3_128 algorithm
  */
 class TestMurmurHash3 {
+    private fun murmurhash3_x64_128(s: String, seed: Int = 0) = murmurhash3_x64_128_string.hash(s, seed, ::Pair)
+    private fun murmurhash3_x64_128(buf: ByteArray, seed: Int = 0) = murmurhash3_x64_128_bytes.hash(buf, seed, ::Pair)
+
     @Test
     fun testStringHash0() = doTestStringHash("")
 

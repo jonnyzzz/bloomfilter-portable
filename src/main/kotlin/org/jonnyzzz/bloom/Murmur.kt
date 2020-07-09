@@ -12,14 +12,16 @@ package org.jonnyzzz.bloom
  *
  * Note, this is simplified and patched version of the Murmur3_128 algorithm
  */
-internal object MurmurHash3 {
-    fun murmurhash3_x64_128(s: String, seed: Int = 0) = murmurhash3_x64_128(s, seed, ::Pair)
 
-    fun <R> murmurhash3_x64_128(input: String, seed: Int = 0, handleResult: (Long, Long) -> R) : R {
-        //pad the string with \0 chars
-        val s = when(val rem = input.length % 8) {
-            0 -> input
-            else -> input + "\u0000".repeat(8 - rem)
+internal interface MurMur3HashFunction<T : Any> {
+    fun <R> hash(t: T, seed: Int, hash: (Long, Long) -> R): R
+}
+
+internal val murmurhash3_x64_128_string = object : MurMur3HashFunction<String> {
+    override fun <R> hash(t: String, seed: Int, hash: (Long, Long) -> R): R {
+        val s = when (val rem = t.length % 8) {
+            0 -> t
+            else -> t + "\u0000".repeat(8 - rem)
         }
 
         return murmurhash3_x64_128(seed, s.length / 4, {
@@ -28,25 +30,26 @@ internal object MurmurHash3 {
                     s[offset + 2].toLong().and(0xffffL).shl(32) or
                     s[offset + 1].toLong().and(0xffffL).shl(16) or
                     s[offset + 0].toLong().and(0xffffL)
-        }, handleResult)
-    }
-
-    fun murmurhash3_x64_128(buf: ByteArray, seed: Int = 0): Pair<Long, Long> {
-        require(buf.size % 16 == 0) { "the buf must be properly padded to 16 bytes / 128 bits, but was ${buf.size}, rem ${buf.size % 16}" }
-        return murmurhash3_x64_128(seed, buf.size / 8, {
-            val offset = it * 8
-            buf[offset + 7].toLong().and(0xffL).shl(56) or
-            buf[offset + 6].toLong().and(0xffL).shl(48) or
-            buf[offset + 5].toLong().and(0xffL).shl(40) or
-            buf[offset + 4].toLong().and(0xffL).shl(32) or
-            buf[offset + 3].toLong().and(0xffL).shl(24) or
-            buf[offset + 2].toLong().and(0xffL).shl(16) or
-            buf[offset + 1].toLong().and(0xffL).shl(8) or
-            buf[offset + 0].toLong().and(0xffL)
-        }, ::Pair)
+        }, hash)
     }
 }
 
+internal val murmurhash3_x64_128_bytes = object : MurMur3HashFunction<ByteArray> {
+    override fun <R> hash(t: ByteArray, seed: Int, hash: (Long, Long) -> R): R {
+        require(t.size % 16 == 0) { "the buf must be properly padded to 16 bytes / 128 bits, but was ${t.size}, rem ${t.size % 16}" }
+        return murmurhash3_x64_128(seed, t.size / 8, {
+            val offset = it * 8
+            t[offset + 7].toLong().and(0xffL).shl(56) or
+                    t[offset + 6].toLong().and(0xffL).shl(48) or
+                    t[offset + 5].toLong().and(0xffL).shl(40) or
+                    t[offset + 4].toLong().and(0xffL).shl(32) or
+                    t[offset + 3].toLong().and(0xffL).shl(24) or
+                    t[offset + 2].toLong().and(0xffL).shl(16) or
+                    t[offset + 1].toLong().and(0xffL).shl(8) or
+                    t[offset + 0].toLong().and(0xffL)
+        }, hash)
+    }
+}
 
 @Suppress("NOTHING_TO_INLINE")
 private inline fun rotateLeft(i: Long, distance: Int): Long = i shl distance or (i ushr -distance)

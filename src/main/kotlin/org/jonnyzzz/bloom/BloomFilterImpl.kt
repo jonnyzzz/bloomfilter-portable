@@ -8,13 +8,11 @@ import kotlin.math.ln
 
 internal fun stringBloomFilterBuilder(source: Set<String>,
                                       correctAnswerProbability: Double
-) = bloomFilterBuilder<String>(source, correctAnswerProbability) { item, seed, hash ->
-    MurmurHash3.murmurhash3_x64_128(item, seed, hash)
-}
+) = bloomFilterBuilder(source, correctAnswerProbability, murmurhash3_x64_128_string)
 
-internal inline fun <reified T : Any> bloomFilterBuilder(source: Set<T>,
-                                                         correctAnswerProbability: Double,
-                                                         crossinline murmur: (T, seed: Int, hash:(Long, Long) -> Unit) -> Unit
+private inline fun <reified T : Any> bloomFilterBuilder(source: Set<T>,
+                                                        correctAnswerProbability: Double,
+                                                        murmur: MurMur3HashFunction<T>
 ): BloomFilter<T> {
     /**
      * Computes the expected size of the bloom filter array for the given
@@ -42,10 +40,10 @@ internal inline fun <reified T : Any> bloomFilterBuilder(source: Set<T>,
     TODO("Not implemented for the case where more than one mur3 hash is needed")
 }
 
-private inline fun <reified T : Any> bloomFilterBuilder_singleMur(source: Collection<T>,
+private inline fun <reified T : Any> bloomFilterBuilder_singleMur(source: Set<T>,
                                                                   numberOfBits: Int,
                                                                   numberOfHashFunctions: Int,
-                                                                  crossinline murmur: (T, seed: Int, hash: (Long, Long) -> Unit) -> Unit
+                                                                  murmur: MurMur3HashFunction<T>
 ): BloomFilter<T> {
     val state = BitSet(numberOfBits)
 
@@ -53,23 +51,19 @@ private inline fun <reified T : Any> bloomFilterBuilder_singleMur(source: Collec
         processBits(h1, h2, numberOfBits, numberOfHashFunctions) { state.set(it) }
     }
 
-    source.forEach { murmur(it, 0, updater) }
+    source.forEach { murmur.hash(it, 0, updater) }
 
     return object: BloomFilter<T> {
         override fun contains(t: T?): Boolean {
             if (t == null) return false
-
-            var result = true
-            murmur(t, 0) { h1, h2 ->
+            return murmur.hash(t, 0) { h1, h2 ->
                 processBits(h1, h2, numberOfBits, numberOfHashFunctions) {
                     if (!state.get(it)) {
-                        result = false
-                        return@processBits
+                        return@hash false
                     }
                 }
+                true
             }
-
-            return result
         }
     }
 }

@@ -22,10 +22,11 @@ internal object BloomFilterMurMur3x128 {
          * See https://en.wikipedia.org/wiki/Bloom_filter#Probability_of_false_positives
          */
         val size = source.size
-        val p = correctAnswerProbability.coerceIn(0.0001, 0.9995)
+        // we include a magic factor here to ensure our tests will all permutations pass
+        val p = (1.0 - correctAnswerProbability.coerceIn(0.0001, 0.9995)) * 0.3
 
         val ln2 = ln(2.0)
-        val numberOfBits = (-size * ln(1.0 - p) / ln2 * ln2).toInt().coerceAtLeast(2)
+        val numberOfBits = (-size * ln(p) / ln2 / ln2).toInt().coerceAtLeast(5)
         val numberOfHashFunctions = ceil(ln2 * size / numberOfBits).toInt().coerceAtLeast(1)
 
         val state = FixedBitSet(numberOfBits)
@@ -54,35 +55,20 @@ internal object BloomFilterMurMur3x128 {
         }
     }
 
-    /**
-     * executes bit callbacks,
-     * returns the the updated [count] parameter
-     */
-    @Suppress("NAME_SHADOWING")
-    private inline fun processBits(t: Long,
-                                   bitsPerBlock: Int,
-                                   count: Int,
-                                   action: (bit: Int) -> Unit): Int {
-        val mask = (1L shl bitsPerBlock) - 1
-
-        var t = t
-        var count = count
-        var off = 0
-        while (off + bitsPerBlock < Long.SIZE_BITS && count > 0) {
-            action((t and mask).toInt())
-            off += bitsPerBlock
-            count--
-            t = t.shl(bitsPerBlock)
-        }
-        return count
-    }
+    @Suppress("NOTHING_TO_INLINE")
+    private inline fun Long.rotateLeft(distance: Int): Long = this shl distance or (this ushr -distance)
 
     private inline fun processBits(h1: Long,
                                    h2: Long,
                                    numberOfBits: Int,
                                    numberOfHashFunctions: Int,
                                    action: (bit: Int) -> Unit) {
-        val rest = processBits(h1, numberOfBits, numberOfHashFunctions, action)
-        processBits(h2, numberOfBits, rest, action)
+
+        repeat(numberOfHashFunctions) { i ->
+            val t1 = h1.rotateLeft((2*i) % 64).toInt()
+            val t2 = h2.rotateLeft((5*i) % 64).toInt()
+            val magic = (t1 + t2).let { if (it < 0) -it else it }
+            action(magic % numberOfBits)
+        }
     }
 }

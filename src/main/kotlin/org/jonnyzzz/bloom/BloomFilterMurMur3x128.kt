@@ -2,7 +2,6 @@
 
 package org.jonnyzzz.bloom
 
-import java.util.*
 import kotlin.math.ceil
 import kotlin.math.ln
 
@@ -61,7 +60,7 @@ internal object BloomFilterMurMur3x128 {
                                                                       numberOfHashFunctions: Int,
                                                                       murmur: MurMur3HashFunction<T>
     ): BloomFilter<T> {
-        val state = BitSet(numberOfBits)
+        val state = FixedBitSet(numberOfBits)
 
         val updater: (Long, Long) -> Unit = { h1, h2 ->
             processBits(h1, h2, numberOfBits, numberOfHashFunctions) { state.set(it) }

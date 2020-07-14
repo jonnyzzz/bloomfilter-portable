@@ -43,9 +43,10 @@ class StringFiltersTest {
     ) {
 
         @Suppress("NAME_SHADOWING")
-        val actualExpectedP = actualExpectedP ?: (expectedP - 0.1)
+        val actualExpectedP = actualExpectedP ?: expectedP
 
         val filter = BloomFilters.trainStringFilter(input, expectedP)
+        println("Created filter $filter")
         for (s in input) {
             Assert.assertTrue("must contains - $s", filter.contains(s))
         }

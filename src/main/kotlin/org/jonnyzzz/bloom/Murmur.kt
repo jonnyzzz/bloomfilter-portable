@@ -19,34 +19,37 @@ internal interface MurMur3HashFunction<T : Any> {
 
 internal val murmurhash3_x64_128_string = object : MurMur3HashFunction<String> {
     override fun <R> hash(t: String, seed: Int, hash: (Long, Long) -> R): R {
-        val s = when (val rem = t.length % 8) {
-            0 -> t
-            else -> t + "\u0000".repeat(8 - rem)
-        }
-
-        return murmurhash3_x64_128(seed, s.length / 4, {
-            val offset = it * 4
-            s[offset + 3].toLong().and(0xffffL).shl(48) or
-            s[offset + 2].toLong().and(0xffffL).shl(32) or
-            s[offset + 1].toLong().and(0xffffL).shl(16) or
-            s[offset + 0].toLong().and(0xffffL)
+        return murmurhash3_x64_128(seed, Char.SIZE_BYTES * t.length, {
+            val offset = it / Char.SIZE_BYTES
+                    t[offset + 3].toLong().and(0xffffL).shl(48) or
+                    t[offset + 2].toLong().and(0xffffL).shl(32) or
+                    t[offset + 1].toLong().and(0xffffL).shl(16) or
+                    t[offset + 0].toLong().and(0xffffL)
+        }, {
+            val char = t[it / Char.SIZE_BYTES].toLong()
+            if (it % 2 == 1) {
+                char.and(0xffL)
+            } else {
+                char.shl(8).and(0xffL)
+            }
         }, hash)
     }
 }
 
 internal val murmurhash3_x64_128_bytes = object : MurMur3HashFunction<ByteArray> {
     override fun <R> hash(t: ByteArray, seed: Int, hash: (Long, Long) -> R): R {
-        require(t.size % 16 == 0) { "the buf must be properly padded to 16 bytes / 128 bits, but was ${t.size}, rem ${t.size % 16}" }
-        return murmurhash3_x64_128(seed, t.size / 8, {
-            val offset = it * 8
-            t[offset + 7].toLong().and(0xffL).shl(56) or
-            t[offset + 6].toLong().and(0xffL).shl(48) or
-            t[offset + 5].toLong().and(0xffL).shl(40) or
-            t[offset + 4].toLong().and(0xffL).shl(32) or
-            t[offset + 3].toLong().and(0xffL).shl(24) or
-            t[offset + 2].toLong().and(0xffL).shl(16) or
-            t[offset + 1].toLong().and(0xffL).shl(8) or
-            t[offset + 0].toLong().and(0xffL)
+        return murmurhash3_x64_128(seed, t.size, {
+            val offset = it
+                    t[offset + 7].toLong().and(0xffL).shl(56) or
+                    t[offset + 6].toLong().and(0xffL).shl(48) or
+                    t[offset + 5].toLong().and(0xffL).shl(40) or
+                    t[offset + 4].toLong().and(0xffL).shl(32) or
+                    t[offset + 3].toLong().and(0xffL).shl(24) or
+                    t[offset + 2].toLong().and(0xffL).shl(16) or
+                    t[offset + 1].toLong().and(0xffL).shl(8) or
+                    t[offset + 0].toLong().and(0xffL)
+        }, {
+            t[it].toLong().and(0xffL)
         }, hash)
     }
 }
@@ -68,12 +71,11 @@ private inline fun fmix64(k: Long): Long {
 
 /** Returns the MurmurHash3_x64_128 hash*/
 private inline fun <R> murmurhash3_x64_128(seed: Int,
-                                           sizeInLongs: Int,
-                                           getLongLittleEndian: (longOffset: Int) -> Long,
+                                           sizeInBytes: Int,
+                                           getLongLittleEndian: (byteOffset: Int) -> Long,
+                                           getRemainderBytes: (byteOffset: Int) -> Long,
                                            handleResult: (Long, Long) -> R
 ): R {
-    require(sizeInLongs % 2 == 0) { "the input must be properly padded to 2 longs / 128 bites, but was $sizeInLongs" }
-
     // The original algorithm does have a 32 bit unsigned seed.
     // We have to mask to match the behavior of the unsigned types and prevent sign extension.
     var h1 = seed.toLong() and 0x00000000FFFFFFFFL
@@ -81,12 +83,13 @@ private inline fun <R> murmurhash3_x64_128(seed: Int,
     val c1 = -0x783c846eeebdac2bL
     val c2 = 0x4cf5ad432745937fL
 
-    if (sizeInLongs % 2 != 0) throw RuntimeException("The array must have size mod 16 == 0")
-
     var i = 0
-    while (i < sizeInLongs) {
-        var k1 = getLongLittleEndian(i++)
-        var k2 = getLongLittleEndian(i++)
+    val rem = sizeInBytes % 16
+    val roundedEnd = sizeInBytes - rem
+    while (i < roundedEnd) {
+        var k1 = getLongLittleEndian(i)
+        var k2 = getLongLittleEndian(i + 8)
+        i += 16
         k1 *= c1
         k1 = rotateLeft(k1, 31)
         k1 *= c2
@@ -103,8 +106,42 @@ private inline fun <R> murmurhash3_x64_128(seed: Int,
         h2 = h2 * 5 + 0x38495ab5
     }
 
-    h1 = h1 xor (sizeInLongs * 8).toLong()
-    h2 = h2 xor (sizeInLongs * 8).toLong()
+    var k1: Long = 0
+    var k2: Long = 0
+
+    if (rem >= 15) k2 = getRemainderBytes(roundedEnd + 14) and 0xffL shl 48
+    if (rem >= 14) k2 = k2 or (getRemainderBytes(roundedEnd + 13) and 0xffL shl 40)
+    if (rem >= 13) k2 = k2 or (getRemainderBytes(roundedEnd + 12) and 0xffL shl 32)
+    if (rem >= 12) k2 = k2 or (getRemainderBytes(roundedEnd + 11) and 0xffL shl 24)
+    if (rem >= 11) k2 = k2 or (getRemainderBytes(roundedEnd + 10) and 0xffL shl 16)
+    if (rem >= 10) k2 = k2 or (getRemainderBytes(roundedEnd + 9) and 0xffL shl 8)
+
+    if (rem >= 9) {
+        k2 = k2 or (getRemainderBytes(roundedEnd + 8) and 0xffL)
+        k2 *= c2
+        k2 = java.lang.Long.rotateLeft(k2, 33)
+        k2 *= c1
+        h2 = h2 xor k2
+    }
+
+    if (rem >= 8) k1 = getRemainderBytes(roundedEnd + 7) shl 56
+    if (rem >= 7) k1 = k1 or (getRemainderBytes(roundedEnd + 6) and 0xffL shl 48)
+    if (rem >= 6) k1 = k1 or (getRemainderBytes(roundedEnd + 5) and 0xffL shl 40)
+    if (rem >= 5) k1 = k1 or (getRemainderBytes(roundedEnd + 4) and 0xffL shl 32)
+    if (rem >= 4) k1 = k1 or (getRemainderBytes(roundedEnd + 3) and 0xffL shl 24)
+    if (rem >= 3) k1 = k1 or (getRemainderBytes(roundedEnd + 2) and 0xffL shl 16)
+    if (rem >= 2) k1 = k1 or (getRemainderBytes(roundedEnd + 1) and 0xffL shl 8)
+
+    if (rem >= 1) {
+        k1 = k1 or (getRemainderBytes(roundedEnd + 0) and 0xffL)
+        k1 *= c1
+        k1 = rotateLeft(k1, 31)
+        k1 *= c2
+        h1 = h1 xor k1
+    }
+
+    h1 = h1 xor sizeInBytes.toLong()
+    h2 = h2 xor sizeInBytes.toLong()
     h1 += h2
     h2 += h1
     h1 = fmix64(h1)

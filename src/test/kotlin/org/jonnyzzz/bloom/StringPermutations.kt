@@ -13,7 +13,7 @@ object StringPermutations {
         if (size == 1) return basicChars.shuffled().asSequence()
 
         return allStringsOfSize(size - 1).flatMap { longEl ->
-            allStringsOfSize(1).map { it + longEl }
-        }
+            allStringsOfSize(1).map { it + longEl }.distinct()
+        }.distinct()
     }
 }

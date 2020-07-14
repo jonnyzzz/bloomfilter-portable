@@ -68,7 +68,6 @@ class TestMurmurHash3 {
             for (len in bytes.indices) {
                 seed *= -0x61c8864f
                 val input = arr.copyOfRange(offset, offset + len)
-                if (input.size % 16 != 0) continue
                 val (val1, val2) = murmurhash3_x64_128(input, seed)
                 Assert.assertEquals(answers128[len * 2], val1)
                 Assert.assertEquals(answers128[len * 2 + 1], val2)
